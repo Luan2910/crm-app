@@ -1,0 +1,8 @@
+.home {
+    text-align: center;
+    .links {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+    }
+}
