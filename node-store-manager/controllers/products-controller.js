@@ -3,6 +3,7 @@ const { validationResult } = require('express-validator');
 
 const HttpError = require('../models/http-error')
 const Product = require('../models/product')
+const User = require('../models/user')
 
 const getProductById = async (req, res, next) => {
     const productId = req.params.pid;
@@ -40,7 +41,7 @@ const getProductsByUserId = async (req, res, next) => {
 const createProduct = async (req, res, next) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
-        throw new HttpError('Invalid inputs, please check your data.', 422)
+        return next(HttpError('Invalid inputs, please check your data.', 422))
     }
 
     const { title, description, price, owner } = req.body;
@@ -53,11 +54,21 @@ const createProduct = async (req, res, next) => {
         owner
     })
 
+    let user;
+    try {
+        user = await User.findById(owner)
+    } catch (error) {
+        return next(new HttpError('Creating product failed, user search failed.', 500));
+    }
+
+    if (!user) {
+        return next(new HttpError('Creating product failed, no user found with the provided id.', 500));
+    }
+
     try {
         await createdProduct.save();
     } catch (err) {
-        const error = new HttpError('Creating product failed, try again.', 500);
-        return next(error);
+        return next(new HttpError('Creating product failed, try again.', 500));
     }
 
     res.status(201).json({ product: createdProduct });
@@ -66,7 +77,7 @@ const createProduct = async (req, res, next) => {
 const updateProduct = async (req, res, next) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
-        throw new HttpError('Invalid inputs for update, please check your data.', 422)
+        return next(HttpError('Invalid inputs for update, please check your data.', 422))
     }
 
     const { title, description } = req.body;
